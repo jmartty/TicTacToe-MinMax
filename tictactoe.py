@@ -84,9 +84,9 @@ class TicTacToeState:
 
     def gameScore(self):
         if self.playerWinner():
-            return -10
+            return -1
         elif self.computerWinner():
-            return 10
+            return 1
         else:
             return 0
 
@@ -100,36 +100,45 @@ class TicTacToeState:
         return ret
 
     def computerMove(self):
-        TicTacToeState.computeNextMoveAt(self)
+        TicTacToeState.computeNextMoveAt(self, -999999, 999999)
         self.placeMoveComputer(self.choice[0], self.choice[1])
 
-    def computeNextMoveAt(current_state):
+    def computeNextMoveAt(current_state, alpha, beta):
+        # Terminal node
         if current_state.hasEnded():
             return current_state.gameScore()
         
-        scores = []
         moves = []
-        
+        scores = []
+
         # Fill scores and moves, recurseively using minmax
-        for move in current_state.availableMoves():
-            next_state = copy.deepcopy(current_state)
-            next_state.placeMove(next_state.turn, move[0], move[1])
-            move_score = TicTacToeState.computeNextMoveAt(next_state)
-            moves.append(move)
-            scores.append(move_score)
+        if current_state.turn == 1:
+            move_score = -999999
+            for move in current_state.availableMoves():
+                next_state = copy.deepcopy(current_state)
+                next_state.placeMove(next_state.turn, move[0], move[1])
+                move_score = max(move_score, TicTacToeState.computeNextMoveAt(next_state, alpha, beta))
+                moves.append(move)
+                scores.append(move_score)
+                alpha = max(alpha, move_score)
+                if beta <= alpha:
+                    break
+            current_state.choice = moves[scores.index(max(scores))]
+            return move_score
 
-        # Min for player
         if current_state.turn == 0:
-            min_score_idx = scores.index(min(scores))
-            current_state.choice = moves[min_score_idx]
-            return scores[min_score_idx]
-        # Max for computer
-        elif current_state.turn == 1:
-            # Max calc for computer
-            max_score_idx = scores.index(max(scores))
-            current_state.choice = moves[max_score_idx]
-            return scores[max_score_idx]
-
+            move_score = 999999
+            for move in current_state.availableMoves():
+                next_state = copy.deepcopy(current_state)
+                next_state.placeMove(next_state.turn, move[0], move[1])
+                move_score = min(move_score, TicTacToeState.computeNextMoveAt(next_state, alpha, beta))
+                moves.append(move)
+                scores.append(move_score)
+                beta = min(beta, move_score)
+                if beta <= alpha:
+                    break
+            current_state.choice = moves[scores.index(max(scores))]
+            return move_score
 
 class TicTacToe:
 
@@ -164,7 +173,7 @@ class TicTacToe:
 
     def playerInput(self):
         while True:
-            inp = input("Enter position: ")
+            inp = input("Enter position (x,y): ")
             x,y = inp.split(',')
             try:
                 x = int(x)
